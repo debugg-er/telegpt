@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"fmt"
 
 	"telegpt/bot/config"
 	"telegpt/bot/models"
@@ -48,19 +47,23 @@ func (t UserStore) SetUser(user models.User) error {
 		return err
 	}
 	if userDoc != nil {
-		_, err := userDoc.Ref.Update(context.Background(), []firestore.Update{
+		updation := []firestore.Update{
 			{Path: "token", Value: user.UserOpenAIToken},
-		})
-		if err != nil {
+		}
+		if user.GptMessages != nil {
+			updation = append(updation, firestore.Update{
+				Path: "gptMessageHistory", Value: user.GptMessages,
+			})
+		}
+		if _, err := userDoc.Ref.Update(context.Background(), updation); err != nil {
 			return err
 		}
 	} else {
 		u := t.collection.Doc(user.UserId)
-		wr, err := u.Create(context.Background(), user)
+		_, err := u.Create(context.Background(), user)
 		if err != nil {
 			return err
 		}
-		fmt.Println(wr)
 	}
 	return nil
 }

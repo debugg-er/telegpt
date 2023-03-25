@@ -19,7 +19,7 @@ func NewCache(expiration time.Duration) *Cache {
 	}
 }
 
-func (c *Cache) GetUserSection(userId string) *models.UserSession {
+func (c *Cache) GetUserSession(userId string) *models.UserSession {
 	userSession, ok := c.userSessions[userId]
 	if !ok {
 		return nil
@@ -28,7 +28,7 @@ func (c *Cache) GetUserSection(userId string) *models.UserSession {
 	return userSession
 }
 
-func (c *Cache) SetUserSession(userId string, user *models.User) {
+func (c *Cache) SetUserSession(userId string, user *models.User) *models.UserSession {
 	session := models.NewUserSection(user)
 	c.userSessions[userId] = session
 
@@ -47,4 +47,6 @@ func (c *Cache) SetUserSession(userId string, user *models.User) {
 			}
 		}
 	}(session.LastAccess)
+
+	return session
 }

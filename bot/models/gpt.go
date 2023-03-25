@@ -1,32 +1,26 @@
 package models
 
 type (
-	ChatCompletion struct {
-		ID      string   `json:"id"`
-		Object  string   `json:"object"`
-		Created int      `json:"created"`
-		Choices []Choice `json:"choices"`
-		Usage   Usage    `json:"usage"`
+	CompletionResp struct {
+		ID      string `json:"id"`
+		Object  string `json:"object"`
+		Created int    `json:"created"`
+		Choices []struct {
+			Index   int `json:"index"`
+			Message struct {
+				Role    string `json:"role"`
+				Content string `json:"content"`
+			} `json:"message"`
+			FinishReason string `json:"finish_reason"`
+		} `json:"choices"`
+		Usage struct {
+			PromptTokens     int `json:"prompt_tokens"`
+			CompletionTokens int `json:"completion_tokens"`
+			TotalTokens      int `json:"total_tokens"`
+		} `json:"usage"`
 	}
 
-	Choice struct {
-		Index        int     `json:"index"`
-		Message      Message `json:"message"`
-		FinishReason string  `json:"finish_reason"`
-	}
-
-	Message struct {
-		Role    string `json:"role"`
-		Content string `json:"content"`
-	}
-
-	Usage struct {
-		PromptTokens     int `json:"prompt_tokens"`
-		CompletionTokens int `json:"completion_tokens"`
-		TotalTokens      int `json:"total_tokens"`
-	}
-
-	ChunkChatCompletion struct {
+	ChunkedCompletionResp struct {
 		ID      string `json:"id"`
 		Object  string `json:"object"`
 		Created int64  `json:"created"`
@@ -38,5 +32,16 @@ type (
 			Index        int    `json:"index"`
 			FinishReason string `json:"finish_reason"`
 		} `json:"choices"`
+	}
+
+	CompletionReqBody struct {
+		Model    string              `json:"model"`
+		Stream   bool                `json:"stream"`
+		Messages []GptMessageHistory `json:"messages"`
+	}
+
+	GptMessageHistory struct {
+		Role    string `json:"role" firestore:"role"`
+		Content string `json:"content" firestore:"content"`
 	}
 )

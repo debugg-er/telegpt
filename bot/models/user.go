@@ -7,8 +7,9 @@ import (
 
 type (
 	User struct {
-		UserId          string `firestore:"userId"`
-		UserOpenAIToken string `firestore:"token"`
+		UserId          string              `firestore:"userId"`
+		UserOpenAIToken string              `firestore:"token"`
+		GptMessages     []GptMessageHistory `firestore:"gptMessageHistory"`
 	}
 	UserSession struct {
 		*User
@@ -17,8 +18,12 @@ type (
 	}
 )
 
-func NewUser(userId string, openAIToken string) *User {
-	return &User{UserId: userId, UserOpenAIToken: openAIToken}
+func NewUser(userId string, openAIToken string, gptMessages []GptMessageHistory) *User {
+	return &User{
+		UserId:          userId,
+		UserOpenAIToken: openAIToken,
+		GptMessages:     gptMessages,
+	}
 }
 
 func NewUserSection(user *User) *UserSession {
