@@ -1,2 +1,0 @@
-openAIKey: ${OPEN_AI_KEY:HI}
-telegramBotToken: ${TELEGRAM_BOT_TOKEN:HELLO}
