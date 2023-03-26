@@ -23,5 +23,6 @@ func HandleEnterToken(c *bot.Context) {
 		return
 	}
 
+	c.Session.IsEnteringToken = false
 	SendTelegramMsg(c, "Saved your token ("+token+")")
 }
