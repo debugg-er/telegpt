@@ -10,57 +10,44 @@ import (
 	"strings"
 	"telegpt/bot"
 	"telegpt/bot/models"
+	"telegpt/bot/util"
 	"time"
 )
 
 func HandleCompletion(c *bot.Context) {
-	m := c.Update.Message
-	userSession := c.Cache.GetUserSession(m.From.UserName)
-	if userSession == nil {
-		user, err := c.UserStore.GetUserById(m.From.UserName)
-		if err != nil {
-			log.Println(err)
-			sendTelegramMsg(c, "Internal server error")
-			return
-		}
-		if user == nil {
-			sendTelegramMsg(c, "Please provide your Open AI key using \"/token <your key>\"")
-			return
-		}
-		userSession = c.Cache.SetUserSession(user.UserId, user)
-	}
+	initMsg, _ := ReplyTelegramMsg(c, "Processing...")
 
-	initMsg, _ := replyTelegramMsg(c, "Processing...")
-
-	userSession.GptMessages = append(userSession.GptMessages, models.GptMessageHistory{
+	// Update user question
+	c.Session.GptMessages = append(c.Session.GptMessages, models.GptMessageHistory{
 		Role:    "user",
-		Content: m.Text,
+		Content: c.Update.Message.Text,
 	})
-	out, err := getGptCompletion(userSession, m.Text)
+	// Do completion
+	out, err := getGptCompletion(c.Session)
 	if err != nil {
 		log.Println(err)
-		editTelegramMsg(c, initMsg, "Error occur when calling to Open AI")
+		EditTelegramMsg(c, initMsg, "Error occur when calling to Open AI")
 		return
 	}
-
 	completion := ""
 	for chunk := range out {
 		completion += chunk
-		editTelegramMsg(c, initMsg, completion)
+		EditTelegramMsg(c, initMsg, completion)
 	}
 
 	// Update new message to user session and user store
-	userSession.GptMessages = append(userSession.GptMessages, models.GptMessageHistory{
+	c.Session.GptMessages = append(c.Session.GptMessages, models.GptMessageHistory{
 		Role:    "assistant",
 		Content: completion,
 	})
-	userSession.GptMessages = takeNLastItems(userSession.GptMessages, 10)
-	if err := c.UserStore.SetUser(*userSession.User); err != nil {
+	c.Session.GptMessages = util.TakeNLastItems(c.Session.GptMessages, 10)
+	if err := c.UserStore.CreateOrUpdateUser(c.Session.User); err != nil {
 		log.Println(err)
 	}
 }
 
-func getGptCompletion(session *models.UserSession, question string) (chan string, error) {
+// You must update your question to `GptMessages` field in `session`
+func getGptCompletion(session *models.UserSession) (chan string, error) {
 	completionReqBody, err := json.Marshal(models.CompletionReqBody{
 		Model:    "gpt-3.5-turbo",
 		Stream:   true,
@@ -73,7 +60,7 @@ func getGptCompletion(session *models.UserSession, question string) (chan string
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+session.UserOpenAIToken)
+	req.Header.Set("Authorization", "Bearer "+session.OpenAIToken)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := session.HttpClient.Do(req)
@@ -103,12 +90,11 @@ func getGptCompletion(session *models.UserSession, question string) (chan string
 				return
 			}
 
-			// fmt.Println("Content: " + jsonChunk.Choices[0].Delta.Content)
 			out <- jsonChunk.Choices[0].Delta.Content
 		}
 		if scanner.Err() != nil {
 			out <- scanner.Err().Error()
 		}
 	}()
-	return chan2IntervalChan(out, time.Millisecond*500), nil
+	return util.Chan2IntervalChan(out, time.Millisecond*500), nil
 }

@@ -41,14 +41,14 @@ func (t UserStore) GetUserById(userId string) (*models.User, error) {
 	return &user, nil
 }
 
-func (t UserStore) SetUser(user models.User) error {
+func (t UserStore) CreateOrUpdateUser(user *models.User) error {
 	userDoc, err := t.getUserDocById(user.UserId)
 	if err != nil {
 		return err
 	}
 	if userDoc != nil {
 		updation := []firestore.Update{
-			{Path: "token", Value: user.UserOpenAIToken},
+			{Path: "token", Value: user.OpenAIToken},
 		}
 		if user.GptMessages != nil {
 			updation = append(updation, firestore.Update{

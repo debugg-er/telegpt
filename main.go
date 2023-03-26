@@ -7,28 +7,27 @@ import (
 	"telegpt/bot/config"
 	"telegpt/bot/handler"
 	"telegpt/bot/store"
-	"time"
 
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
 var (
-	cache     *store.Cache
 	botAPI    *telegram.BotAPI
 	userStore *store.UserStore
+	userCache *store.UserCache
 )
 
 func init() {
-	var err error
 	// Init user firestore
+	var err error
 	userStore, err = store.NewUserStore()
 	if err != nil {
 		panic(err)
 	}
 	log.Println("Connected to Firestore")
 
-	// Create telegpt cache
-	cache = store.NewCache(time.Second * 10)
+	// Create telegpt user userCache
+	userCache = store.NewUserCache(userStore)
 	log.Println("Created user cache store")
 
 	// Create telegram bot
@@ -40,18 +39,34 @@ func init() {
 }
 
 func handle(update telegram.Update) {
+	userSession, err := userCache.GetUserSession(update.Message.From.UserName)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	userSession.Mu.Lock()
+	defer userSession.Mu.Unlock()
+
 	ctx := &bot.Context{
 		BotAPI:    botAPI,
-		Cache:     cache,
-		Update:    update,
 		UserStore: userStore,
+		Session:   userSession.Value,
+		Update:    update,
+	}
+	if userSession.Value.OpenAIToken == "" {
+		handler.SendTelegramMsg(ctx, "Please provide your Open AI key using /token")
+		return
 	}
 
-	if strings.HasPrefix(update.Message.Text, "/token ") {
-		handler.HandleSetToken(ctx)
-	} else {
-		handler.HandleCompletion(ctx)
+	if strings.HasPrefix(update.Message.Text, "/token") {
+		handler.HandleStartSettingToken(ctx)
+		return
 	}
+	if userSession.Value.IsEnteringToken {
+		handler.HandleEnterToken(ctx)
+		return
+	}
+	handler.HandleCompletion(ctx)
 }
 
 func main() {
