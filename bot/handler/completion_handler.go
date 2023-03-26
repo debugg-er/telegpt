@@ -20,17 +20,17 @@ func HandleCompletion(c *bot.Context) {
 		user, err := c.UserStore.GetUserById(m.From.UserName)
 		if err != nil {
 			log.Println(err)
-			sendTelegramMessage(c, "Internal server error")
+			sendTelegramMsg(c, "Internal server error")
 			return
 		}
 		if user == nil {
-			sendTelegramMessage(c, "Please provide your Open AI key using \"/token <your key>\"")
+			sendTelegramMsg(c, "Please provide your Open AI key using \"/token <your key>\"")
 			return
 		}
 		userSession = c.Cache.SetUserSession(user.UserId, user)
 	}
 
-	initMsg, _ := sendTelegramMessage(c, "Processing...")
+	initMsg, _ := replyTelegramMsg(c, "Processing...")
 
 	userSession.GptMessages = append(userSession.GptMessages, models.GptMessageHistory{
 		Role:    "user",

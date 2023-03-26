@@ -7,9 +7,16 @@ import (
 	telegram "github.com/go-telegram-bot-api/telegram-bot-api"
 )
 
-func sendTelegramMessage(c *bot.Context, content string) (telegram.Message, error) {
+func sendTelegramMsg(c *bot.Context, content string) (telegram.Message, error) {
 	msg := telegram.NewMessage(c.Update.Message.Chat.ID, content)
 	msg.ParseMode = telegram.ModeMarkdown
+	return c.BotAPI.Send(msg)
+}
+
+func replyTelegramMsg(c *bot.Context, content string) (telegram.Message, error) {
+	msg := telegram.NewMessage(c.Update.Message.Chat.ID, content)
+	msg.ParseMode = telegram.ModeMarkdown
+	msg.ReplyToMessageID = c.Update.Message.MessageID
 	return c.BotAPI.Send(msg)
 }
 
