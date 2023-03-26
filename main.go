@@ -53,17 +53,16 @@ func handle(update telegram.Update) {
 		Session:   userSession.Value,
 		Update:    update,
 	}
-	if userSession.Value.OpenAIToken == "" {
-		handler.SendTelegramMsg(ctx, "Please provide your Open AI key using /token")
-		return
-	}
-
 	if strings.HasPrefix(update.Message.Text, "/token") {
 		handler.HandleStartSettingToken(ctx)
 		return
 	}
 	if userSession.Value.IsEnteringToken {
 		handler.HandleEnterToken(ctx)
+		return
+	}
+	if userSession.Value.OpenAIToken == "" {
+		handler.SendTelegramMsg(ctx, "Please provide your Open AI key using /token")
 		return
 	}
 	handler.HandleCompletion(ctx)
