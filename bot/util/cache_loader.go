@@ -1,7 +1,6 @@
 package util
 
 import (
-	"log"
 	"sync"
 	"time"
 )
@@ -23,7 +22,7 @@ type (
 func NewCacheLoader[K comparable, V any](loader func(K) (V, error)) *CacheLoader[K, V] {
 	return &CacheLoader[K, V]{
 		items:             make(map[K]*Item[V], 10),
-		ExpireAfterAccess: time.Second * 2,
+		ExpireAfterAccess: time.Minute * 5,
 		loader:            loader,
 	}
 }
@@ -58,16 +57,13 @@ func (c CacheLoader[K, V]) loadItemToCache(key K) (*Item[V], error) {
 		for {
 			select {
 			case <-timer:
-				log.Println("Hit lock")
 				item.Mu.Lock()
-				log.Println("Expired, Delete session")
 				if c.items[key] == item {
 					delete(c.items, key)
 				}
 				item.Mu.Unlock()
 				return
 			case <-item.accessChan:
-				log.Println("access he session, reset timer!!")
 				timer = time.After(c.ExpireAfterAccess)
 			}
 		}
